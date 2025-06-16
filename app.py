@@ -17,11 +17,6 @@ app = Flask(__name__)
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
-# Configure session to use filesystem (instead of signed cookies)
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
-
 # Read the csv file
 dataframe = pd.read_csv("card_transactions_new.csv")
 
@@ -54,12 +49,16 @@ def select_agency():
     
     selected_agency = str(request.form.get('agency'))
     
+    for index, agency in enumerate(agencies):
+        if agency == selected_agency:
+            transaction_count = amount_of_transactions[index]
+    
     # df_agency.to_csv("card_transaction_anomaly.csv", index=False)
     features = ["TRANSACTION_AMOUNT", "TRANSACTION_TIMESTAMP"]
     dataframe_transaction_amount_timestamp = find_anomalies_iforest(selected_agency, features)
     plot_transaction_amount_timestamp = scatter_plot(dataframe_transaction_amount_timestamp, "TRANSACTION_DATE", "TRANSACTION_AMOUNT", "Time", "Transaction Amount", "Transaction Amount Over Time")
     
-    benfords_law_plot = benfords_law(selected_agency)
+    benfords_law_plot = benfords_law(selected_agency, transaction_count)
     
     # features = ["TRANSACTION_AMOUNT", "DAYS_SINCE_LAST_TRANSACTION"]
     # dataframe_transaction_amount_days_since_last_transaction = find_anomalies_iforest(selected_agency, features)
@@ -70,14 +69,13 @@ def select_agency():
     # weekday = scatter_plot(df_agency, selected_agency, "TRANSACTION_DATE", "TRANSACTION_AMOUNT")
     
 
-    return render_template("index.html", selected_agency=selected_agency, agencies=agencies, amount_of_transactions=amount_of_transactions, plot_transaction_amount_timestamp=plot_transaction_amount_timestamp, benfords_law_plot=benfords_law_plot)
+    return render_template("index.html", selected_agency=selected_agency, agencies=agencies, transaction_count=transaction_count, plot_transaction_amount_timestamp=plot_transaction_amount_timestamp, benfords_law_plot=benfords_law_plot)
 
 
 @app.route("/get_row", methods=["POST"])
 def get_row():
     data = request.get_json()
     
-    # print(data)
     objectid = data.get("index") 
     row = dataframe[dataframe["OBJECTID"] == int(objectid)].iloc[0].to_dict()
     
@@ -113,14 +111,14 @@ def get_row():
 
     ordered_row = OrderedDict((key, renamed[key]) for key in custom_order)
 
-    print(type(row))
-    print(row)
-    print(ordered_row)
+    # print(type(row))
+    # print(row)
+    # print(ordered_row)
     
     return Response(json.dumps(ordered_row), mimetype='application/json')
 
 
-def benfords_law(agency_name):
+def benfords_law(agency_name, transaction_count):
     # Select specific agency
     df_agency = dataframe[dataframe["AGENCY"] == agency_name].copy()
     
@@ -158,11 +156,19 @@ def benfords_law(agency_name):
     ))
 
     fig.update_layout(
-        title=f"Benford's Law - {agency_name}",
+        title=f"Amount of transactions: {transaction_count}",
         xaxis_title="First Digit",
         yaxis_title="Proportion",
         template="plotly_white",
         legend=dict(x=0.01, y=0.99)
+    )
+    # Changing the style of the title
+    fig.update_layout(
+        title={
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 24}
+        }
     )
     
     # Render as embeddable HTML
@@ -208,17 +214,15 @@ def find_anomalies_iforest(selected_agency, features):
     
     # Select specific agency
     df_agency = dataframe[dataframe["AGENCY"] == selected_agency].copy()
-
-    # Use only relevant features
     
     X_agency = df_agency[features]
 
     # Scale the features
-    scaler = StandardScaler()
-    X_agency_scaled = scaler.fit_transform(X_agency)
+    # scaler = StandardScaler()
+    # X_agency_scaled = scaler.fit_transform(X_agency)
 
     # Fit Isolation Forest
     iso_forest = IsolationForest(n_estimators=100, contamination=0.01, random_state=42)
-    df_agency["anomaly"] = iso_forest.fit_predict(X_agency_scaled)
+    df_agency["anomaly"] = iso_forest.fit_predict(X_agency)
     
     return df_agency
