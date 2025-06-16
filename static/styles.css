@@ -1,0 +1,102 @@
+/* Size for brand */
+nav .navbar-brand
+{
+    font-size: xx-large;
+}
+/* Colors for brand */
+nav .navbar-brand .blue
+{
+    color: #95b5df;
+}
+nav .navbar-brand .red
+{
+    color: #ea433b;
+}
+nav .navbar-brand .yellow
+{
+    color: #f5b82e;
+}
+nav .navbar-brand .green
+{
+    color: #2e944b;
+}
+nav .navbar-brand .black
+{
+    color: #262424;
+}
+nav .navbar-brand .crimson
+{
+    color: #A51C30;
+}
+
+#row-details-transaction-amount-over-time {
+    margin-top: 30px;
+    padding: 10px;
+}
+.details-list {
+    list-style-type: none;
+    text-align: left;
+}
+
+.details-list li {
+    padding-top: 1vw;
+}
+
+.grid-layout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns */
+    grid-template-rows: repeat(3, auto);  /* 3 rows */
+    gap: 10px; /* optional spacing */
+}
+
+#select-agencies-form {
+  display: flex;
+  gap: 10px; /* spacing between select and button */
+  align-items: center;
+}
+
+.select-agencies {
+  height: 100%;
+  display: flex;
+  justify-content: center; /* horizontally center */
+  align-items: center;     /* vertically center */
+  padding-top: 2vw;
+  padding-bottom: 2vw;
+}
+
+
+
+
+
+#temperature-main
+{
+    font-size: 70px;
+    font-weight: bold;
+}
+
+
+
+/* width */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+    background-color: #555;
+    border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+

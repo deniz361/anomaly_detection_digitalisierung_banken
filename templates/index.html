@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block main %}
+
+<h1>Select Agency</h1>
+<div class="select-agencies">
+        <form action="/select_agency" method="POST" id="select-agencies-form">
+            <select name="agency" class="form-select" aria-label="Default select example">
+                <option selected="{{ selected_agency }}">{{ selected_agency }}</option>
+                {% for agency in agencies %}
+                    {% if agency != selected_agency %}
+                        <option value="{{ agency }}">{{ agency }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-outline-secondary">Submit</button>
+        </form>
+</div>
+
+<div class="grid-layout">
+
+    <div class="plot">
+        {% if plot_transaction_amount_timestamp is defined %}
+            {{ plot_transaction_amount_timestamp | safe }}
+        {%  endif %}
+    </div>
+    <div id="row-details-transaction-amount-over-time">
+
+    </div>
+</div>
+
+
+{% if benfords_law_plot is defined %}
+    {{ benfords_law_plot | safe }}
+{%  endif %}
+
+{% if plot_transaction_amount_days_since_last_transaction is defined %}
+    {{ plot_transaction_amount_days_since_last_transaction | safe }}
+{%  endif %}
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const plots = document.querySelectorAll('.plotly-graph-div');
+
+    plots.forEach(plot => {
+        plot.on('plotly_click', function(data) {
+            const objectid = data.points[0].customdata[0];
+
+            fetch('/get_row', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ index: objectid })
+            })
+            .then(response => response.json())
+            .then(row => {
+                let html = "<h3>Transaction Details</h3><ul class='details-list'>";
+                for (const [key, value] of Object.entries(row)) {
+                    html += `<li><strong>${key}:</strong> ${value}</li>`;
+                }
+                html += "</ul>";
+                document.getElementById("row-details-transaction-amount-over-time").innerHTML = html;
+            });
+        });
+    });
+});
+</script>
+
+    
+{% endblock %}
