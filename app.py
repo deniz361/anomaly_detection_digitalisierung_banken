@@ -1,7 +1,5 @@
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
-from flask import Flask, render_template, request, session, Response
-from flask_session import Session
+from flask import Flask, render_template, request, Response
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -79,14 +77,17 @@ def get_row():
     objectid = data.get("index") 
     row = dataframe[dataframe["OBJECTID"] == int(objectid)].iloc[0].to_dict()
     
+    # Converting to datetime and making it readable
     row["TRANSACTION_DATE"] = pd.to_datetime(row["TRANSACTION_DATE"]).strftime("%Y-%m-%d %I:%M")
+    
+    # Dollar sign to the transaction amount
     row["TRANSACTION_AMOUNT"] = f"${row['TRANSACTION_AMOUNT']:.2f}"
     
-    # Removing non relevant keys
+    # Removing non relevant columns
     for key in ["OBJECTID", "HOUR", "VENDOR_STATE_PROVINCE_ENC", "TRANSACTION_TIMESTAMP", "WEEKDAY"]:
         row.pop(key, None)
 
-    # Renamin keys
+    # Renaming keys
     renamed = {
         "Vendor Name": row.pop("VENDOR_NAME"),
         "Agency": row.pop("AGENCY"),
@@ -108,7 +109,6 @@ def get_row():
         "Transaction Report / Modification Delays",
         "Days Since Last Transaction"
     ]
-
     ordered_row = OrderedDict((key, renamed[key]) for key in custom_order)
 
     # print(type(row))
@@ -119,9 +119,15 @@ def get_row():
 
 
 def benfords_law(agency_name, transaction_count):
-    # Select specific agency
+    """
+        Computing Beford's Law. 
+        
+        Returns the plot in html format.
+    """
+    
     df_agency = dataframe[dataframe["AGENCY"] == agency_name].copy()
     
+    # Get the first digits of every positive transaction
     first_digits = (
         df_agency[df_agency['TRANSACTION_AMOUNT'] > 0]['TRANSACTION_AMOUNT']
         .astype(str)
@@ -162,7 +168,8 @@ def benfords_law(agency_name, transaction_count):
         template="plotly_white",
         legend=dict(x=0.01, y=0.99)
     )
-    # Changing the style of the title
+    
+    # style of the title
     fig.update_layout(
         title={
             'x': 0.5,
@@ -171,13 +178,18 @@ def benfords_law(agency_name, transaction_count):
         }
     )
     
-    # Render as embeddable HTML
+    # render as html
     plot_html = pio.to_html(fig, full_html=False)
     
     return plot_html
 
 
 def scatter_plot(dataframe, x, y, xlabel, ylabel, title):
+    """
+        Create a scatter plot.
+        
+        Returns the plot in html format.
+    """
     fig = px.scatter(
         dataframe,
         x=x,
@@ -203,25 +215,30 @@ def scatter_plot(dataframe, x, y, xlabel, ylabel, title):
     }
     )
 
-    # Render as embeddable HTML
+    # Render as html
     plot_html = pio.to_html(fig, full_html=False)
     
     return plot_html
 
 def find_anomalies_iforest(selected_agency, features):
+    """
+        Find the anomalies using iforest.
+        
+        Contamination: 0.01 --> How many anomalies
+        n_estimators: 100 --> How many tree branches
+    """
     
+    # Convert to unix time
     dataframe["TRANSACTION_TIMESTAMP"] = pd.to_datetime(dataframe["TRANSACTION_DATE"], errors="coerce").astype(int) // 10**9        
     
-    # Select specific agency
+    # Selecting the agency
     df_agency = dataframe[dataframe["AGENCY"] == selected_agency].copy()
-    
     X_agency = df_agency[features]
 
     # Scale the features
     # scaler = StandardScaler()
     # X_agency_scaled = scaler.fit_transform(X_agency)
 
-    # Fit Isolation Forest
     iso_forest = IsolationForest(n_estimators=100, contamination=0.01, random_state=42)
     df_agency["anomaly"] = iso_forest.fit_predict(X_agency)
     
